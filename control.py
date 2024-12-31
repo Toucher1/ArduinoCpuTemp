@@ -26,7 +26,7 @@ try:
         temp = get_cpu_temperature()
         print(f"CPU Temperature: {temp}°C")
         arduino.write(f"{temp}\n".encode())  # Отправляем температуру на Arduino
-        time.sleep(30)  # Задержка 30 секунд перед следующей проверкой
+        time.sleep(1)  # Задержка 1 секунда перед следующей проверкой
 except KeyboardInterrupt:
     print("Программа завершена.")
     arduino.close()
