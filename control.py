@@ -4,25 +4,21 @@ import time
 import serial
 import wmi
 
-# --- Настройки ---
-ARDUINO_PORT = "COM5"      # Замените на ваш порт (например, COM3)
-BAUD_RATE = 9600           # Должен совпадать со скетчем Arduino
-UPDATE_INTERVAL = 1.0      # Как часто опрашивать датчик, секунды
-RECONNECT_DELAY = 3.0      # Пауза перед повторным подключением, секунды
+# настройки
+ARDUINO_PORT = "COM5"      # свой порт сюда (COM3, COM4 ...)
+BAUD_RATE = 9600           # так же, как в скетче
+UPDATE_INTERVAL = 1.0      # раз в сколько секунд читаем температуру
+RECONNECT_DELAY = 3.0      # сколько ждать перед новой попыткой подключиться
 
 
 def connect_arduino(port, baud):
-    """Открывает последовательное соединение и ждёт инициализации платы."""
     ser = serial.Serial(port, baud, timeout=1)
-    time.sleep(2)  # Ожидание для инициализации Arduino (авто-reset при открытии порта)
+    time.sleep(2)  # плата ресетится при открытии порта, даём ей очухаться
     return ser
 
 
 def get_cpu_temperature(wmi_conn):
-    """
-    Возвращает температуру процессора из Open Hardware Monitor
-    или None, если подходящий сенсор не найден.
-    """
+    # ищем сенсор температуры CPU, если нет - вернём None
     for sensor in wmi_conn.Sensor():
         if sensor.SensorType == "Temperature" and "CPU" in sensor.Name:
             return int(sensor.Value)
@@ -30,7 +26,7 @@ def get_cpu_temperature(wmi_conn):
 
 
 def main():
-    # Подключение к WMI (namespace задаём как raw-строку из-за обратного слэша)
+    # namespace через raw-строку, иначе \O ломается
     try:
         wmi_conn = wmi.WMI(namespace=r"root\OpenHardwareMonitor")
     except wmi.x_wmi:
@@ -41,7 +37,7 @@ def main():
     arduino = None
     try:
         while True:
-            # Подключаемся к Arduino, если ещё не подключены
+            # ещё не подключены - пробуем
             if arduino is None:
                 try:
                     arduino = connect_arduino(ARDUINO_PORT, BAUD_RATE)
@@ -62,7 +58,7 @@ def main():
             try:
                 arduino.write(f"{temp}\n".encode())
             except serial.SerialException as e:
-                # Плату отключили — закрываем порт и пробуем переподключиться
+                # выдернули плату - роняем порт и идём на переподключение
                 print(f"Потеряно соединение с Arduino: {e}")
                 arduino.close()
                 arduino = None

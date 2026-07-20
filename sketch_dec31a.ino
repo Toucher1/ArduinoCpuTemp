@@ -1,12 +1,12 @@
-#define LED1 3  // Зелёный: нормальная температура
-#define LED2 4  // Жёлтый: повышенная температура
-#define LED3 5  // Красный: высокая температура
+#define LED1 3  // зелёный, всё ок
+#define LED2 4  // жёлтый, греется
+#define LED3 5  // красный, жарко
 
-// Пороги переключения индикации (°C)
-#define TEMP_WARN 56  // < этого значения — зелёный
-#define TEMP_HOT  70  // >= этого значения — красный, между порогами — жёлтый
+// пороги, °C. ниже WARN - зелёный, до HOT - жёлтый, дальше красный
+#define TEMP_WARN 56
+#define TEMP_HOT  70
 
-int lastTemp = -1; // Последняя обработанная температура (-1 = ещё не получена)
+int lastTemp = -1; // -1 пока ничего не пришло
 
 void setLeds(bool green, bool yellow, bool red) {
   digitalWrite(LED1, green ? HIGH : LOW);
@@ -15,33 +15,33 @@ void setLeds(bool green, bool yellow, bool red) {
 }
 
 void setup() {
-  Serial.begin(9600); // Настройка последовательного порта
+  Serial.begin(9600);
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
 
-  setLeds(false, false, false); // Изначально все светодиоды выключены
+  setLeds(false, false, false); // на старте гасим всё
 }
 
 void loop() {
   if (Serial.available() > 0) {
-    int temp = Serial.parseInt(); // Считываем температуру из порта
+    int temp = Serial.parseInt();
 
-    // parseInt возвращает 0 при таймауте/мусоре — игнорируем такие значения
+    // parseInt на таймауте/мусоре даёт 0, такое пропускаем
     if (temp <= 0) {
       return;
     }
 
-    // Обновляем индикацию только при изменении температуры
+    // дёргаем светодиоды только если число реально поменялось
     if (temp != lastTemp) {
       lastTemp = temp;
 
       if (temp < TEMP_WARN) {
-        setLeds(true, false, false);   // Зелёный
+        setLeds(true, false, false);
       } else if (temp < TEMP_HOT) {
-        setLeds(false, true, false);   // Жёлтый
+        setLeds(false, true, false);
       } else {
-        setLeds(false, false, true);   // Красный
+        setLeds(false, false, true);
       }
     }
   }
