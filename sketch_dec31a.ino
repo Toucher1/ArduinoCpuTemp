@@ -1,8 +1,18 @@
-#define LED1 3  // Пин для первого светодиода
-#define LED2 4  // Пин для второго светодиода
-#define LED3 5  // Пин для третьего светодиода
+#define LED1 3  // Зелёный: нормальная температура
+#define LED2 4  // Жёлтый: повышенная температура
+#define LED3 5  // Красный: высокая температура
 
-int lastTemp = -1; // Переменная для хранения последней температуры
+// Пороги переключения индикации (°C)
+#define TEMP_WARN 56  // < этого значения — зелёный
+#define TEMP_HOT  70  // >= этого значения — красный, между порогами — жёлтый
+
+int lastTemp = -1; // Последняя обработанная температура (-1 = ещё не получена)
+
+void setLeds(bool green, bool yellow, bool red) {
+  digitalWrite(LED1, green ? HIGH : LOW);
+  digitalWrite(LED2, yellow ? HIGH : LOW);
+  digitalWrite(LED3, red ? HIGH : LOW);
+}
 
 void setup() {
   Serial.begin(9600); // Настройка последовательного порта
@@ -10,33 +20,28 @@ void setup() {
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
 
-  // Изначально выключаем все светодиоды
-  digitalWrite(LED1, LOW);
-  digitalWrite(LED2, LOW);
-  digitalWrite(LED3, LOW);
+  setLeds(false, false, false); // Изначально все светодиоды выключены
 }
 
 void loop() {
   if (Serial.available() > 0) {
-    int temp = Serial.parseInt(); // Считываем температуру из последовательного порта
+    int temp = Serial.parseInt(); // Считываем температуру из порта
 
-    // Если температура изменилась, обновляем светодиоды
+    // parseInt возвращает 0 при таймауте/мусоре — игнорируем такие значения
+    if (temp <= 0) {
+      return;
+    }
+
+    // Обновляем индикацию только при изменении температуры
     if (temp != lastTemp) {
       lastTemp = temp;
 
-      // Управляем светодиодами в зависимости от температуры
-      if (temp >= 40 && temp <= 55) {
-        digitalWrite(LED1, HIGH);
-        digitalWrite(LED2, LOW);
-        digitalWrite(LED3, LOW);
-      } else if (temp >= 56 && temp <= 69) {
-        digitalWrite(LED1, LOW);
-        digitalWrite(LED2, HIGH);
-        digitalWrite(LED3, LOW);
-      } else if (temp >= 70) {
-        digitalWrite(LED1, LOW);
-        digitalWrite(LED2, LOW);
-        digitalWrite(LED3, HIGH);
+      if (temp < TEMP_WARN) {
+        setLeds(true, false, false);   // Зелёный
+      } else if (temp < TEMP_HOT) {
+        setLeds(false, true, false);   // Жёлтый
+      } else {
+        setLeds(false, false, true);   // Красный
       }
     }
   }
